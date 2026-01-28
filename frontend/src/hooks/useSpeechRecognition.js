@@ -92,8 +92,9 @@ export function useSpeechRecognition() {
       try {
         recognitionRef.current.start();
       } catch (e) {
-        // Usually errors if already started, which is fine
-        console.log("Start called but maybe already running", e);
+        console.error("Microphone start failed:", e);
+        setError("Failed to start microphone. Browser may be blocking access.");
+        setIsListening(false);
       }
     } else {
       recognitionRef.current.stop();
