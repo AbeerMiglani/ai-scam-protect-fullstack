@@ -1,28 +1,36 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from backend.core import detector
+from pydantic import BaseModel
+from typing import List, Optional
 import uvicorn
+from backend.core import detector
 
-app = FastAPI(title="AI Scam Protect API")
+app = FastAPI(title="AI Scam Protect API (Cloud)")
 
-# Setup CORS for Frontend
+# Setup CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"], # Allow all origins for local dev
+    allow_origins=["*"], 
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
+# Pydantic Models
+class AnalyzeRequest(BaseModel):
+    text: str
+
+class ClearRequest(BaseModel):
+    pass
+
 @app.get("/")
 def health_check():
-    return {"status": "ok", "app": "AI Scam Protect"}
+    return {"status": "ok", "app": "AI Scam Protect Cloud"}
 
 @app.get("/status")
 def get_status():
-    """Returns current monitoring state and thread level."""
+    """Returns current threat level."""
     return {
-        "is_listening": detector.is_listening,
         "threat_level": detector.threat_level
     }
 
@@ -31,17 +39,24 @@ def get_transcript():
     """Returns the full log of analyzed phrases."""
     return detector.text_log
 
-@app.post("/start")
-def start_monitoring():
-    """Starts the listening background thread."""
-    detector.start_listening()
-    return {"message": "Monitoring started", "is_listening": True}
+@app.post("/analyze")
+def analyze_text(request: AnalyzeRequest):
+    """
+    Receives text from the frontend and analyzes it for scam probability.
+    """
+    try:
+        # We pass the full history from the server-side memory 
+        # (In a real production app, we might want to accept history from client or use a DB)
+        result = detector.analyze_text(request.text, detector.text_log)
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
-@app.post("/stop")
-def stop_monitoring():
-    """Stops the listening background thread."""
-    detector.stop_listening()
-    return {"message": "Monitoring stopped", "is_listening": False}
+@app.post("/clear")
+def clear_session():
+    """Clears the current session history."""
+    detector.clear_session()
+    return {"message": "Session cleared"}
 
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=8000)

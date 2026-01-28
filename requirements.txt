@@ -1,7 +1,6 @@
-streamlit
-SpeechRecognition
-pyaudio
 requests
 numpy
 fastapi
 uvicorn
+google-generativeai
+python-multipart
