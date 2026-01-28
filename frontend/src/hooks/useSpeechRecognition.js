@@ -61,11 +61,15 @@ export function useSpeechRecognition() {
       // Use ref to check current "intended" state
       if (isListeningRef.current) {
         console.log("Speech recognition ended unexpectedly. Restarting...");
-        try {
-          recognition.start();
-        } catch (e) {
-          console.log("Restart failed", e);
-        }
+
+        // Add a small delay to prevent rapid-fire restart loops that browsers block
+        setTimeout(() => {
+          try {
+            recognition.start();
+          } catch (e) {
+            console.log("Restart failed", e);
+          }
+        }, 300);
       } else {
         console.log("Speech recognition stopped intentionally.");
       }
@@ -97,6 +101,10 @@ export function useSpeechRecognition() {
   }, [isListening]);
 
   const startListening = useCallback(() => {
+    if (!recognitionRef.current) {
+      setError('Speech Recognition not supported or not initialized.');
+      return;
+    }
     setError(null);
     setIsListening(true);
   }, []);
